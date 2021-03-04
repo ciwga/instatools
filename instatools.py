@@ -14,9 +14,16 @@ user3 : x9x7x2x4
 L = instaloader.Instaloader()
 
 
+def system():
+    if os.name == 'nt':
+        os.system("cls")
+    else:
+        os.system("clear")
+
+
 def login():
     try:
-        L.login(username, password)  # "username", "password"
+        L.login("username", "password")  # "username", "password"
     except instaloader.exceptions.TwoFactorAuthRequiredException:
         while True:
             try:
@@ -226,16 +233,21 @@ def main():
         postusername = str(input("Write an instagram username: "))
         try:
             postDownloader(postusername)
-        except instaloader.exceptions.LoginRequiredException:
+        except instaloader.exceptions.BadResponseException:
+            system()
+            print("That is a private profile's link. Logging to instagram")
             login()
+            print("Logged to instagram")
             postDownloader(postusername)
     elif choose == 6:
-        oddpost = str(input("Write an instagram username: "))
         try:
-            singlepostDownloader(oddpost)
-        except instaloader.exceptions.LoginRequiredException:
+            singlepostDownloader()
+        except instaloader.exceptions.BadResponseException:
+            system()
+            print("That is a private profile's link. Logging to instagram")
             login()
-            singlepostDownloader(oddpost)
+            print("Logged to instagram")
+            singlepostDownloader()
     elif choose == 7:
         login()
         highlightid = int(input("Paste an instagram id of profile: "))
