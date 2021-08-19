@@ -50,9 +50,17 @@ def upload(dirn):
                     title = r_list[index]['message']['chat']['title']
                     z[title] = i
                 except KeyError:
-                    pass
+                    try:
+                        i = r_list[index]['channel_post']['chat']['id']
+                        title = r_list[index]['channel_post']['chat']['title']
+                        z[title] = i
+                    except KeyError:
+                        pass
+            if z is None:
+                print("Send a message to channel/group and try again!!")
+                sys.exit()
             print(z)
-            channel_name = str(input("Enter the Channel Name: "))
+            channel_name = str(input("Enter the Channel/Group Name: "))
             chid_value = z.get(channel_name)
         else:
             if len(r_list) == 0:
@@ -60,7 +68,10 @@ def upload(dirn):
                       "or disable privacy mode using bot father")
                 sys.exit()
             else:
-                chid_value = r_list[0]['message']['chat']['id']
+                try:
+                    chid_value = r_list[0]['message']['chat']['id']
+                except KeyError:
+                    chid_value = r_list[0]['channel_post']['chat']['id']
 
     ph = "/sendPhoto"
     vd = "/sendVideo"
@@ -70,21 +81,29 @@ def upload(dirn):
     for root, dirs, filenames in os.walk(dirn):
         for filename in filenames:
             dirname = os.path.dirname(root+"/"+filename)
+            t_name = os.path.splitext(dirname+"/"+filename)[0]
+            sub = filename
             if db_check(filename) == 0:
+                if os.path.isfile(t_name+".txt"):
+                    with open(t_name+".txt", "r", encoding="utf-8") as c:
+                        for line in c:
+                            if not line:
+                                break
+                            sub = line
                 if filename.endswith('jpg'):
                     with open(f"{dirname}/{filename}", 'rb') as image:
-                        link = f"{api}{ph}{ch_id}{cp}{filename}"
+                        link = f"{api}{ph}{ch_id}{cp}{sub}"
                         requests.post(link, files={'photo': image})
                         print(f"{filename} was uploaded to telegram")
                         db_insert(filename)
-                        sleep(1.87)
+                        sleep(1.89)
                 elif filename.endswith("mp4"):
                     with open(f"{dirname}/{filename}", 'rb') as video:
-                        link = f"{api}{vd}{ch_id}{cp}{filename}"
+                        link = f"{api}{vd}{ch_id}{cp}{sub}"
                         requests.post(link, files={'video': video})
                         print(f"{filename} was uploaded to telegram")
                         db_insert(filename)
-                        sleep(1.87)
+                        sleep(1.89)
                 else:
                     os.remove(dirname+"/"+filename)
             else:
