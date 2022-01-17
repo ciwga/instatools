@@ -1,1 +1,1 @@
-instaloader==4.8
+instaloader==4.8.2
