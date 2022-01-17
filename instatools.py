@@ -1,22 +1,23 @@
 from time import sleep
-from TGUploader import upload
+from TGUploader import TelegramBasicUpload
 import instaloader
 import os
 import re
 
-dirname = os.path.dirname(os.path.abspath(__file__))
-os.chdir(dirname)
+
 try:
     os.mkdir("Instagram_Data")
 except FileExistsError:
     pass
 
-os.chdir(os.path.join(dirname, "Instagram_Data"))
+
 L = instaloader.Instaloader()
-L.iphone_support = False  # faster download, lower quality
+L.iphone_support = True  # False: faster download, lower quality
 L.download_video_thumbnails = False
 # L.download_geotags = True
 # L.download_comments = True
+dirname = os.path.dirname(os.path.abspath(__file__))
+os.chdir(os.path.join(dirname, "Instagram_Data"))
 
 
 def cleaner():
@@ -34,7 +35,7 @@ def usr():
 # taken from instaloader source code
 def login():
     try:
-        L.login("", "")  # "username", "password"
+        L.login("enter username", "enter password")  # "username", "password"
     except instaloader.exceptions.TwoFactorAuthRequiredException:
         while True:
             try:
@@ -54,12 +55,12 @@ def post_downloader():
     epoint = spanLocation[1]-1
     shortcode = url[spoint:epoint]
     post = instaloader.Post.from_shortcode(L.context, shortcode)
-    if post.video_url is None:
-        print("Post doesn't exist")
-    else:
+    if post:
         print(post.get_sidecar_nodes)
         L.filename_pattern = f"{post.profile}_""{date_utc}_UTC"
         L.download_post(post, target=post.profile)
+    else:
+        print("Post doesn't exists")
 
 
 # Find out an instagram id from an instagram username
@@ -136,7 +137,7 @@ def download_profile():
     os.chdir(os.path.join(os.getcwd(), "Profile_Scraping"))
     login()
     profile = instaloader.Profile.from_username(L.context, usr())
-    L.download_profiles([profile], igtv=True, tagged=False,
+    L.download_profiles([profile], igtv=False, tagged=False,
                         highlights=True, stories=True)
 
 
@@ -163,7 +164,8 @@ def main():
         stories()
         u2t = input("Upload to Telegram downloaded files (Y|N): ")
         if u2t.lower() == 'y':
-            upload(os.getcwd())
+            up = TelegramBasicUpload()
+            up.FileUpload(os.getcwd())
         else:
             print("Cancelled !!")
             pass
@@ -184,4 +186,5 @@ def main():
         main()
 
 
-main()
+if __name__ == '__main__':
+    main()
