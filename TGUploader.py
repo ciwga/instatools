@@ -61,7 +61,7 @@ class TelegramBasicUpload(Database):
                 chvalue = values.group(0)
                 print(f"Uploading to {title}...")
             except IndexError:
-                print("Enter Telegram Chat ID (line 51)")
+                print("Enter Telegram Chat ID (line 52)")
                 sys.exit()
 
         ch_id = "?chat_id="+str(chvalue)
