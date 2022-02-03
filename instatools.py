@@ -49,11 +49,10 @@ def login():
 # Download an Instagram Post from a Link
 def post_downloader():
     url = str(input("Paste the link: "))
-    regcode = re.compile("(p|l|v)/([0-9]|[a-z]|[A-Z])+.*./")
-    spanLocation = [i for i in regcode.search(url).span()]
-    spoint = spanLocation[0]+2
-    epoint = spanLocation[1]-1
-    shortcode = url[spoint:epoint]
+    pattern1 = '/(p|reel|tv)/*.+?(?=/)'
+    pattern2 = '\w{5,}\S{5,}'
+    temp = re.search(pattern1, url)
+    shortcode = re.search(pattern2, temp.group(0)).group(0)
     post = instaloader.Post.from_shortcode(L.context, shortcode)
     if post:
         print(post.get_sidecar_nodes)
@@ -172,7 +171,15 @@ def main():
     elif menu == "4":
         download_profile()
     elif menu == "5":
-        post_downloader()
+        try:
+            post_downloader()
+        except:
+            text = "Private Account or Wrong Url\nTrying to sign in"
+            print(text)
+            print("."*len(text))
+            login()
+            print("Logged !!")
+            post_downloader()
     elif menu == "6":
         dl_hlight()
     elif menu == "7":
