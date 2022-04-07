@@ -49,10 +49,8 @@ def login():
 # Download an Instagram Post from a Link
 def post_downloader():
     url = str(input("Paste the link: "))
-    pattern1 = '/(p|reel|tv)/*.+?(?=/)'
-    pattern2 = '\w{5,}\S{5,}'
-    temp = re.search(pattern1, url)
-    shortcode = re.search(pattern2, temp.group(0)).group(0)
+    pattern = r'((?<=p/)|(?<=reel/)|(?<=tv/)).*?(?=/)'
+    shortcode = re.search(pattern, url).group(0)
     post = instaloader.Post.from_shortcode(L.context, shortcode)
     if post:
         print(post.get_sidecar_nodes)
