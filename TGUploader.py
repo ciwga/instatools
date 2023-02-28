@@ -4,7 +4,7 @@ import sqlite3
 import requests
 import os
 import sys
-import re
+import inquirer
 
 
 class Database():
@@ -35,7 +35,7 @@ class TelegramBasicUpload(Database):
 
     def __init__(self):
         super().__init__()
-        self.token = "enter token here"
+        self.token = "paste the token here"  # token
         self.api = "https://api.telegram.org/bot"+self.token
         self.url = self.api+"/getUpdates"
 
@@ -49,58 +49,85 @@ class TelegramBasicUpload(Database):
         ph = "/sendPhoto"
         vd = "/sendVideo"
         cp = "&caption="
-        chvalue = ""    # Enter telegram chat id
+        chvalue = ''    # Paste a telegram chat id
+
+        if chvalue:
+            answer = f'id: {chvalue}'
 
         if not chvalue:
+            # Send any message to the channel/group to detect a chat id !
             resp = self.r.json()
-            result = resp['result']
-            regx = re.compile('-[0-9]+')
-            values = regx.search(str(result))
-            title = result[0]['message']['chat']['title']
-            try:
-                chvalue = values.group(0)
-                print(f"Uploading to {title}...")
-            except IndexError:
-                print("Enter Telegram Chat ID (line 52)")
-                sys.exit()
+            chat = resp['result']
 
-        ch_id = "?chat_id="+str(chvalue)
+            dict_o = {}
+            for i in range(len(chat)):
+                try:
+                    ids = chat[i]['my_chat_member']['chat']['id']
+                    title = chat[i]['my_chat_member']['chat']['title']
+                    dict_o.update({title: ids})
+                except KeyError:
+                    try:
+                        ids = chat[i]['channel_post']['sender_chat']['id']
+                        title = chat[i]['channel_post']['sender_chat']['title']
+                        dict_o.update({title: ids})
+                    except KeyError:
+                        pass
+
+            title_names = [name for name in dict_o.keys()]
+            query = [
+                inquirer.List(
+                    'title',
+                    message='Select the channel/group to upload the files',
+                    choices=title_names
+                ),
+            ]
+            answer = inquirer.prompt(query)['title']
+            chvalue = str(dict_o[answer])
+
+        abs_files = []
+        ch_id = "?chat_id="+chvalue
+
         for root, dirs, filenames in os.walk(directory):
             for filename in filenames:
                 dirname = os.path.dirname(root+"/"+filename)
                 files = os.path.join(dirname, filename)
-                t_name = os.path.splitext(files)[0]
+                abs_files.append(files)
 
-                sub = filename
-                if self.db_check(sha256(files)) == 0:
-                    if os.path.isfile(t_name+".txt"):
-                        with open(t_name+".txt", "r", encoding="utf-8") as c:
-                            for line in c:
-                                if not line:
-                                    break
-                                sub = line
-                    if filename.endswith('jpg'):
-                        with open(files, 'rb') as image:
-                            link = f"{self.api}{ph}{ch_id}{cp}{sub}"
-                            requests.post(link, files={'photo': image})
-                            print(f"{filename} was uploaded to telegram")
-                            self.db_insert(sha256(files), filename,
-                                           timestamp2date())
-                            sleep(1.89)
-                    elif filename.endswith("mp4"):
-                        with open(files, 'rb') as video:
-                            link = f"{self.api}{vd}{ch_id}{cp}{sub}"
-                            requests.post(link, files={'video': video})
-                            print(f"{filename} was uploaded to telegram")
-                            self.db_insert(sha256(files), filename,
-                                           timestamp2date())
-                            sleep(1.89)
-                    else:
-                        os.remove(files)
+        abs_files.sort(key=os.path.getmtime)
+        for f in abs_files:
+            t_name = os.path.splitext(f)[0]
+            sub = f.split('\\')[-1]
+            if self.db_check(sha256(f)) == 0:
+                if os.path.isfile(t_name+".txt"):
+                    with open(t_name+".txt", "r", encoding="utf-8") as c:
+                        for line in c:
+                            if not line:
+                                break
+                            sub = line
+                if f.endswith('jpg'):
+                    with open(f, 'rb') as image:
+                        link = f"{self.api}{ph}{ch_id}{cp}{sub}"
+                        print(f"{sub} is uploading to {answer}...")
+                        requests.post(link, files={'photo': image})
+                        print(f"{sub} was uploaded to telegram: {answer}")
+                        self.db_insert(sha256(f), sub,
+                                       timestamp2date())
+                        sleep(1.89)
+                elif f.endswith("mp4"):
+                    with open(f, 'rb') as video:
+                        link = f"{self.api}{vd}{ch_id}{cp}{sub}"
+                        print(f"{sub} is uploading to {answer}...")
+                        requests.post(link, files={'video': video})
+                        print(f"{sub} was uploaded to telegram: {answer}")
+                        self.db_insert(sha256(f), sub,
+                                       timestamp2date())
+                        sleep(1.89)
                 else:
-                    print(f"{filename} already uploaded to telegram, " +
-                          "Deleted !!")
-                    os.remove(files)
+                    os.remove(f)
+            else:
+                print(f"{sub} already uploaded to telegram, " +
+                      "Deleted !!")
+                os.remove(f)
         self.dtb.close()
 
 
