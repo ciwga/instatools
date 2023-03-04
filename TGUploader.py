@@ -33,8 +33,9 @@ class Database():
 
 class TelegramBasicUpload(Database):
 
-    def __init__(self):
+    def __init__(self, directory):
         super().__init__()
+        self.directory = directory
         self.token = "paste the token here"  # token
         self.api = "https://api.telegram.org/bot"+self.token
         self.url = self.api+"/getUpdates"
@@ -45,10 +46,7 @@ class TelegramBasicUpload(Database):
                   "no internet connection!!")
             sys.exit()
 
-    def FileUpload(self, directory):
-        ph = "/sendPhoto"
-        vd = "/sendVideo"
-        cp = "&caption="
+    def send2id(self):
         chvalue = ''    # Paste a telegram chat id
 
         if chvalue:
@@ -83,30 +81,38 @@ class TelegramBasicUpload(Database):
             ]
             answer = inquirer.prompt(query)['title']
             chvalue = str(dict_o[answer])
+        return chvalue, answer
 
+    def sorted_files(self):
         abs_files = []
-        ch_id = "?chat_id="+chvalue
-
-        for root, dirs, filenames in os.walk(directory):
+        for root, dirs, filenames in os.walk(self.directory):
             for filename in filenames:
                 dirname = os.path.dirname(root+"/"+filename)
                 files = os.path.join(dirname, filename)
                 abs_files.append(files)
-
         abs_files.sort(key=os.path.getmtime)
-        for f in abs_files:
+        yield from abs_files
+
+    def FileUpload(self):
+        ph = "/sendPhoto"
+        vd = "/sendVideo"
+        cp = "&caption="
+        chvalue, answer = self.send2id()
+        chatid = f'?chat_id={chvalue}'
+        for f in self.sorted_files():
             t_name = os.path.splitext(f)[0]
             sub = f.split('\\')[-1]
             if self.db_check(sha256(f)) == 0:
                 if os.path.isfile(t_name+".txt"):
-                    with open(t_name+".txt", "r", encoding="utf-8") as c:
+                    with open(t_name+".txt", "r", buffering=8388608,
+                              encoding="utf-8") as c:
                         for line in c:
                             if not line:
                                 break
                             sub = line
                 if f.endswith('jpg'):
-                    with open(f, 'rb') as image:
-                        link = f"{self.api}{ph}{ch_id}{cp}{sub}"
+                    with open(f, 'rb', buffering=8388608) as image:
+                        link = f"{self.api}{ph}{chatid}{cp}{sub}"
                         print(f"{sub} is uploading to {answer}...")
                         requests.post(link, files={'photo': image})
                         print(f"{sub} was uploaded to telegram: {answer}")
@@ -114,8 +120,8 @@ class TelegramBasicUpload(Database):
                                        timestamp2date())
                         sleep(1.89)
                 elif f.endswith("mp4"):
-                    with open(f, 'rb') as video:
-                        link = f"{self.api}{vd}{ch_id}{cp}{sub}"
+                    with open(f, 'rb', buffering=8388608) as video:
+                        link = f"{self.api}{vd}{chatid}{cp}{sub}"
                         print(f"{sub} is uploading to {answer}...")
                         requests.post(link, files={'video': video})
                         print(f"{sub} was uploaded to telegram: {answer}")
@@ -132,8 +138,8 @@ class TelegramBasicUpload(Database):
 
 
 def main():
-    cl = TelegramBasicUpload()
-    cl.FileUpload('Instagram_Data')
+    cl = TelegramBasicUpload('Instagram_Data')
+    cl.FileUpload()
 
 
 if __name__ == '__main__':
