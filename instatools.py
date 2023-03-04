@@ -161,8 +161,8 @@ def main():
         stories()
         u2t = input("Upload to Telegram downloaded files (Y|N): ")
         if u2t.lower() == 'y':
-            up = TelegramBasicUpload()
-            up.FileUpload(os.getcwd())
+            up = TelegramBasicUpload(os.getcwd())
+            up.FileUpload()
         else:
             print("Cancelled !!")
             pass
